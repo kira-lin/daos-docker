@@ -1,0 +1,80 @@
+#
+# Copyright 2018, Intel Corporation
+#
+# 'recipe' for Docker to build an image of centOS-based
+# environment for building the DAOS project.
+#
+
+# Pull base image
+FROM centos:7
+
+# Build arguments can be set via -build-arg
+# set NOBUILD to disable git clone & build
+ARG NOBUILD
+# use same UID as host and default value of 1000 if not specified
+ARG UID=1000
+# For building project, change it to threads you want to use
+ARG CORES=8
+
+ENV USER daos
+ENV PASSWD daos
+# change this to use your proxy
+ENV HTTP_PROXY 172.17.0.1:8118
+# Install basic tools
+RUN yum install -y epel-release yum-plugin-copr; \
+  yum -y copr enable jhli/ipmctl; \
+  yum -y copr enable jhli/safeclib; \
+  yum install -y  boost-devel clang-analyzer cmake CUnit-devel doxygen flex \
+    gcc gcc-c++ git golang graphviz make lcov meson nasm numactl-devel \
+    ninja-build openssl-devel readline-devel pandoc patch scons sg3_utils \
+    valgrind valgrind-devel yasm \
+    libaio-devel libcmocka libcmocka-devel libevent-devel libibverbs-devel \
+    libiscsi-devel librdmacm-devel libtool libtool-ltdl-devel \
+    libuuid-devel libyaml-devel \
+    python python-jwt python-pep8 python-virtualenv \
+    python2-pip python2-pygithub python34-pip python34-pygithub pylint \
+    libipmctl-devel; \
+    yum clean all
+
+RUN useradd -u $UID -ms /bin/bash $USER ;echo "$USER:$PASSWD" | chpasswd
+
+# Create directory for DAOS backend storage
+RUN mkdir -p /mnt/daos; chown $UID /mnt/daos
+
+RUN git config --global https.proxy "${HTTP_PROXY}"; \
+    printf "proxy = %s\n" "${HTTP_PROXY}" >> ~/.curlrc
+
+# Build daos
+RUN git clone https://github.com/daos-stack/daos.git; \
+    cd daos; \
+    git submodule init; \
+    git submodule update; \
+    scons --config=force --build-deps=yes -j ${CORES} PREFIX=/usr/local/daos install
+
+# Update environment variables
+ENV PATH "/usr/local/daos/bin:/usr/local/daos/sbin:${PATH}"
+
+ENV CPATH "/usr/local/daos/lib:${CPATH}"
+
+ENV CRT_PHY_ADDR_STR "ofi+sockets"
+
+ENV OFI_INTERFACE "eth0"
+
+# Setup runtime directories
+RUN mkdir /var/run/daos_server; \
+    mkdir /var/run/daos_agent; \
+    chmod 755 /var/run/daos_server; \
+    chmod 755 /var/run/daos_agent; \
+    chown $USER:$USER /var/run/daos_server; \
+    chown $USER:$USER /var/run/daos_agent
+
+# Switch to new user
+USER $USER
+
+WORKDIR /home/$USER
+
+COPY start_server.sh .
+
+RUN chmod +x start_server.sh
+
+CMD ["/bin/bash"]

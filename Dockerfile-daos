@@ -1,0 +1,7 @@
+FROM daos-wrapper:latest
+
+COPY jdk-8u201-linux-x64.rpm .
+
+RUN rpm -Uvh ./jdk-8u201-linux-x64.rpm
+
+CMD ["/bin/bash"]
