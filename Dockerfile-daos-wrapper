@@ -18,10 +18,11 @@ ARG CORES=8
 
 ENV USER daos
 ENV PASSWD daos
-# change this to use your proxy
-ENV HTTP_PROXY 172.17.0.1:8118
+# Chinese user can use tsinghua mirror to speed up yum
+COPY CentOS-Base.repo /etc/yum.repos.d/CentOS-Base.repo
 # Install basic tools
-RUN yum install -y epel-release yum-plugin-copr; \
+RUN yum makecache; \
+  yum install -y epel-release yum-plugin-copr; \
   yum -y copr enable jhli/ipmctl; \
   yum -y copr enable jhli/safeclib; \
   yum install -y  boost-devel clang-analyzer cmake CUnit-devel doxygen flex \
@@ -40,6 +41,9 @@ RUN useradd -u $UID -ms /bin/bash $USER ;echo "$USER:$PASSWD" | chpasswd
 
 # Create directory for DAOS backend storage
 RUN mkdir -p /mnt/daos; chown $UID /mnt/daos
+
+# change this to use your proxy
+ENV HTTP_PROXY 172.17.0.1:8118
 
 RUN git config --global https.proxy "${HTTP_PROXY}"; \
     printf "proxy = %s\n" "${HTTP_PROXY}" >> ~/.curlrc
@@ -68,13 +72,13 @@ RUN mkdir /var/run/daos_server; \
     chown $USER:$USER /var/run/daos_server; \
     chown $USER:$USER /var/run/daos_agent
 
+COPY start_server.sh /home/daos/
+
+RUN chmod +x /home/daos/start_server.sh
+
 # Switch to new user
 USER $USER
 
 WORKDIR /home/$USER
-
-COPY start_server.sh .
-
-RUN chmod +x start_server.sh
 
 CMD ["/bin/bash"]

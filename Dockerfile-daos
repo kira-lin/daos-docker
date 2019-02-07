@@ -1,7 +1,16 @@
 FROM daos-wrapper:latest
 
+ENV USER daos
+
+USER root
+
 COPY jdk-8u201-linux-x64.rpm .
 
-RUN rpm -Uvh ./jdk-8u201-linux-x64.rpm
+RUN rpm -Uvh ./jdk-8u201-linux-x64.rpm; \
+    rm jdk-8u201-linux-x64.rpm
+
+USER $USER
+
+WORKDIR /home/$USER
 
 CMD ["/bin/bash"]
