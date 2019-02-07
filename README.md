@@ -4,7 +4,11 @@ This project contains a docker image called daos-wrapper, which has installed [D
 ### Usage
 In the project directory:
 ```bash
+# Build it yourself
 docker build -f Dockerfile-daos-wrapper . -t daos-wrapper:latest
+# Or just pull from dockerhub
+docker pull linzhi731/daos-wrapper
+# build your image for development
 docker build -f Dockerfile-daos . -t daos:latest
 # mount on the host and use -v to mount in container
 sudo mount -t tmpfs -o size=<size> tmpfs /mnt/daos
@@ -15,4 +19,3 @@ docker run -it -v /mnt/daos:/mnt/daos daos:latest
 
 ### TODO
 1. Use single mode
-2. Upload to dockerhub
