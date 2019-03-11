@@ -14,7 +14,7 @@ ARG NOBUILD
 # use same UID as host and default value of 1000 if not specified
 ARG UID=1000
 # For building project, change it to threads you want to use
-ARG CORES=8
+ARG CORES=72
 
 ENV USER daos
 ENV PASSWD daos
@@ -25,7 +25,7 @@ RUN yum makecache; \
   yum install -y epel-release yum-plugin-copr; \
   yum -y copr enable jhli/ipmctl; \
   yum -y copr enable jhli/safeclib; \
-  yum install -y  boost-devel clang-analyzer cmake CUnit-devel doxygen flex \
+  yum install -y --nogpgcheck  boost-devel clang-analyzer cmake CUnit-devel doxygen flex \
     gcc gcc-c++ git golang graphviz make lcov meson nasm numactl-devel \
     ninja-build openssl-devel readline-devel pandoc patch scons sg3_utils \
     valgrind valgrind-devel yasm \
@@ -43,10 +43,10 @@ RUN useradd -u $UID -ms /bin/bash $USER ;echo "$USER:$PASSWD" | chpasswd
 RUN mkdir -p /mnt/daos; chown $UID /mnt/daos
 
 # change this to use your proxy
-ENV HTTP_PROXY 172.17.0.1:8118
+#ENV HTTP_PROXY child-prc.intel.com:913
 
-RUN git config --global https.proxy "${HTTP_PROXY}"; \
-    printf "proxy = %s\n" "${HTTP_PROXY}" >> ~/.curlrc
+#RUN git config --global https.proxy "${HTTP_PROXY}"; \
+#    printf "proxy = %s\n" "${HTTP_PROXY}" >> ~/.curlrc
 
 # Build daos
 RUN git clone https://github.com/daos-stack/daos.git; \
@@ -60,9 +60,17 @@ ENV PATH "/usr/local/daos/bin:/usr/local/daos/sbin:${PATH}"
 
 ENV CPATH "/usr/local/daos/lib:${CPATH}"
 
+ENV LD_LIBRARY_PATH "/usr/local/daos/lib:/usr/local/daos/lib64:$LD_LIBRARY_PATH"
+
+ENV DAOS_HOME "/usr/local/daos"
+
 ENV CRT_PHY_ADDR_STR "ofi+sockets"
 
 ENV OFI_INTERFACE "eth0"
+
+ENV CRT_ATTACH_INFO_PATH "/home/${USER}"
+
+ENV DAOS_SINGLETON_CLI 1
 
 # Setup runtime directories
 RUN mkdir /var/run/daos_server; \

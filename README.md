@@ -18,4 +18,3 @@ docker run -it -v /mnt/daos:/mnt/daos daos:latest
 ```
 
 ### TODO
-1. Use single mode
